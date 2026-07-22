@@ -1,0 +1,15 @@
+Build a collaborative document editor that allows multiple users to edit documents in real-time. 
+
+The system should support rich text formatting including bold, italic, headings, bullet lists, and code blocks. Users should be able to see each other's cursors and selections in real-time with different colors assigned to each collaborator.
+
+Documents should auto-save every 30 seconds and also save when the user stops typing for more than 2 seconds. There should be a version history feature that lets users browse and restore previous versions.
+
+Access control is important — document owners should be able to invite collaborators with different permission levels: viewer (read-only), commenter (can add comments but not edit), and editor (full editing access). Sharing should work via email invitations or shareable links with configurable expiration.
+
+The editor needs to work offline. When a user goes offline, they should still be able to edit, and their changes should sync automatically when connectivity is restored, with conflict resolution handled gracefully.
+
+For the backend, we need a WebSocket server for real-time collaboration, a REST API for document CRUD operations, and a PostgreSQL database for persistence. The system should handle at least 100 concurrent editors per document without degradation.
+
+Error handling should be robust — if the WebSocket connection drops, the client should attempt reconnection with exponential backoff. If a save fails, the user should see a clear error message with a retry option.
+
+The frontend should be built with React and use a CRDT-based data structure for conflict-free collaborative editing. The UI should be responsive and work well on both desktop and mobile devices.
