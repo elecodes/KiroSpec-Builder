@@ -1,86 +1,20 @@
 # KiroSpec Builder
 
-**AI-powered specification generation** — Convert unstructured feature ideas into structured Kiro Specification files (`.kiro/specs/`).
+> An AI Agent that converts your feature ideas into structured Kiro Specification files.
 
-KiroSpec Builder is a specialized AI Agent pipeline that ingests raw feature descriptions (voice notes, product ideas, PRDs) and produces:
-- **`requirements.md`** — EARS-formatted functional requirements with testable acceptance criteria
-- **`design.md`** — Domain entities, TypeScript interfaces, and Mermaid architecture diagrams
-- **`tasks.md`** — Atomic, sequenced implementation tasks with dependency ordering
+You describe what you want to build in plain English. The agent produces:
 
----
-
-## Architecture
-
-```mermaid
-graph TB
-    subgraph Infrastructure
-        CLI[CLI Engine]
-        API[HTTP API Server]
-        MCP[MCP Protocol Server]
-        UI[React Web UI]
-    end
-
-    subgraph Adapters
-        OAI[OpenAI Adapter]
-        OLL[Ollama Adapter]
-        RES[Resilient LLM Decorator]
-        FS[FileSystem Exporter]
-    end
-
-    subgraph UseCases
-        SG[SpecGenerator Orchestrator]
-        IP[InputParser]
-        EP[EarsParser]
-        DB[DesignBuilder]
-        TD[TaskDecomposer]
-    end
-
-    subgraph Domain
-        SCH[Zod Schemas]
-        PRT[Port Interfaces]
-    end
-
-    CLI --> SG
-    API --> SG
-    MCP --> SG
-    UI --> API
-
-    SG --> IP
-    SG --> EP
-    SG --> DB
-    SG --> TD
-    SG --> FS
-
-    EP --> RES
-    DB --> RES
-    TD --> RES
-
-    RES --> OAI
-    RES --> OLL
-
-    IP --> SCH
-    EP --> SCH
-    DB --> SCH
-    TD --> SCH
-    SG --> PRT
-```
-
-**Clean Architecture** with strict dependency inversion — infrastructure depends on use cases, which depend on the domain. No domain entity references external frameworks.
+| File | What It Contains |
+|------|------------------|
+| `.kiro/specs/requirements.md` | EARS-formatted requirements with testable acceptance criteria |
+| `.kiro/specs/design.md` | Domain entities, TypeScript interfaces, Mermaid diagrams |
+| `.kiro/specs/tasks.md` | Numbered implementation tasks with dependencies |
 
 ---
 
-## Prerequisites
+## How to Use It
 
-- **Node.js** ≥ 20.0.0
-- **npm** ≥ 9
-- One of:
-  - **OpenAI API Key** — for cloud LLM
-  - **Ollama** — for local LLM inference (no API key needed)
-- **Docker** (optional) — for containerized deployment
-
----
-
-## Installation
+### 1. Install
 
 ```bash
 git clone https://github.com/elecodes/KiroSpec-Builder.git
@@ -89,261 +23,231 @@ npm install
 npm run build
 ```
 
----
+### 2. Configure an LLM Provider
 
-## Configuration
+Copy `.env.example` → `.env` and pick one:
 
-Copy `.env.example` to `.env` and set your values:
-
+**Option A — Ollama (free, runs locally):**
 ```bash
-cp .env.example .env
+# Install Ollama from https://ollama.ai, then:
+ollama pull llama3
+
+# In your .env:
+KIROSPEC_LLM_PROVIDER=ollama
 ```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `KIROSPEC_LLM_PROVIDER` | `openai` | Primary LLM provider (`openai`, `ollama`) |
-| `OPENAI_API_KEY` | — | OpenAI API key (required if provider=openai) |
-| `OPENAI_MODEL` | `gpt-4o` | OpenAI model |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
-| `OLLAMA_MODEL` | `llama3` | Ollama model |
-| `OUTPUT_DIR` | `.kiro/specs` | Output directory for generated specs |
-| `PORT` | `3000` | HTTP server port |
-| `LOG_LEVEL` | `info` | Log level (`trace`, `debug`, `info`, `warn`, `error`) |
+**Option B — OpenAI (cloud, needs API key):**
+```bash
+# In your .env:
+KIROSPEC_LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-your-key-here
+```
 
----
-
-## Usage
-
-### CLI
+### 3. Run It
 
 ```bash
 # From a file
-kirospec generate --input feature.md
+node dist/infrastructure/cli/index.js --input my-feature.md
 
-# From stdin
-cat product-idea.txt | kirospec generate
+# From text directly
+echo "Build a todo app with user auth and real-time sync" | node dist/infrastructure/cli/index.js
 
-# With options
-kirospec generate -i prd.md -o ./specs --provider ollama --force
-
-# Show help
-kirospec generate --help
+# See all options
+node dist/infrastructure/cli/index.js --help
 ```
 
-**Flags:**
+**Output:**
+```
+🚀 Starting spec generation pipeline...
+✅ Spec generation complete!
+   📄 .kiro/specs/requirements.md (2847 bytes)
+   📄 .kiro/specs/design.md (4123 bytes)
+   📄 .kiro/specs/tasks.md (3891 bytes)
+   ⏱️  Total time: 12340ms
+```
 
-| Flag | Short | Description |
-|------|-------|-------------|
-| `--input <file>` | `-i` | Input file (reads stdin if omitted) |
-| `--output <dir>` | `-o` | Output directory (default: `.kiro/specs`) |
-| `--force` | — | Overwrite existing files |
-| `--merge` | — | Append to existing files |
-| `--provider <name>` | `-p` | Override LLM provider |
-| `--help` | `-h` | Show help |
-| `--version` | `-v` | Show version |
+---
 
-### HTTP API
+## Ways to Interact With the Agent
 
-Start the server:
+KiroSpec Builder has **4 interfaces** — all call the same pipeline:
+
+### 🖥️ CLI (Terminal)
 
 ```bash
-npm run dev -- --serve
-# or
+echo "Build a collaborative editor" | node dist/infrastructure/cli/index.js
+```
+
+### 🌐 Web UI (Browser)
+
+```bash
 node dist/infrastructure/cli/index.js --serve
+# Open http://localhost:3000
 ```
 
-**Endpoints:**
+This starts a web server with a visual interface:
+- Paste your feature idea in a text area
+- Click "Generate Spec"
+- See results in tabbed preview (Requirements | Design | Tasks)
+
+### 🔌 HTTP API (Programmatic)
 
 ```bash
-# Health check
-curl http://localhost:3000/api/health
+# Start server
+node dist/infrastructure/cli/index.js --serve
 
-# Generate specs
+# Call the API
 curl -X POST http://localhost:3000/api/generate \
   -H "Content-Type: application/json" \
-  -d '{"content": "Build a feature that...", "format": "text"}'
+  -d '{"content": "Build a payment system with Stripe integration"}'
 ```
 
-### MCP Integration
+### 🤖 MCP Tool (AI Assistant Integration)
 
-KiroSpec Builder exposes itself as an MCP tool for integration with AI assistants:
-
+Register as an MCP server in your AI tool config:
 ```json
 {
   "mcpServers": {
     "kirospec": {
       "command": "node",
       "args": ["dist/infrastructure/cli/index.js", "--mcp"],
-      "env": {
-        "KIROSPEC_LLM_PROVIDER": "ollama"
-      }
+      "env": { "KIROSPEC_LLM_PROVIDER": "ollama" }
     }
   }
 }
 ```
 
-**Tool:** `generate-spec`
-
-```json
-{
-  "name": "generate-spec",
-  "arguments": {
-    "content": "Build a collaborative document editor...",
-    "format": "text",
-    "outputDir": ".kiro/specs"
-  }
-}
-```
-
-### Web UI
-
-Start the development server:
-
-```bash
-npm run dev:ui
-```
-
-Open `http://localhost:5173` — paste your feature idea, click **Generate Spec**, and view the results in the tabbed preview.
+Then any MCP-compatible AI assistant can call the `generate-spec` tool.
 
 ---
 
-## Docker
+## Architecture — How the Agent Works
 
-### Quick Start
-
-```bash
-# Start with Ollama (no API key needed)
-docker compose up
-
-# Start with OpenAI
-OPENAI_API_KEY=sk-xxx docker compose up
+```
+┌──────────────────────────────────────────────────────────┐
+│  YOU  →  CLI / Web UI / API / MCP                        │  Entry Points
+├──────────────────────────────────────────────────────────┤
+│  SpecGenerator (orchestrator)                            │  Runs the pipeline
+│    → InputParser     (validates + normalizes input)      │
+│    → EarsParser      (LLM → EARS requirements)          │
+│    → DesignBuilder   (LLM → entities + diagrams)        │
+│    → TaskDecomposer  (LLM → atomic tasks)               │
+│    → FileExporter    (writes Markdown files)             │
+├──────────────────────────────────────────────────────────┤
+│  OpenAI Adapter  ←→  Resilient Decorator  ←→  Ollama    │  LLM Providers
+│                       (auto-failover)                    │  (with fallback)
+├──────────────────────────────────────────────────────────┤
+│  Zod Schemas (validate EVERY LLM response)              │  Domain Layer
+└──────────────────────────────────────────────────────────┘
 ```
 
-### Pull Ollama Model
+**Key:** The agent calls the LLM 3 times per run (requirements, design, tasks). Every LLM response is validated against a Zod schema before being used — if the LLM hallucinates invalid structure, it fails fast with a clear error.
 
-After starting, pull a model:
+---
+
+## Project Structure
+
+```
+src/
+├── domain/                  ← Schemas + interfaces (the contracts)
+│   ├── schemas/                 Zod validation for all data shapes
+│   └── ports/                   Interfaces that adapters implement
+│
+├── use-cases/               ← Agent logic (the brains)
+│   ├── spec-generator.use-case.ts   Pipeline orchestrator
+│   ├── ears-parser.use-case.ts      LLM prompt → EARS requirements
+│   ├── design-builder.use-case.ts   LLM prompt → design document
+│   ├── task-decomposer.use-case.ts  LLM prompt → task breakdown
+│   └── input-parser.ts             Validates + normalizes input
+│
+├── adapters/                ← External connections (the hands)
+│   ├── llm/                     OpenAI, Ollama, auto-failover
+│   └── exporters/               Markdown file writer
+│
+└── infrastructure/          ← How users interact (the face)
+    ├── cli/                     Terminal command
+    ├── web/server.ts            HTTP API
+    ├── web/ui/                  React web interface
+    ├── mcp/                     MCP protocol server
+    ├── config/                  Environment config (Zod-validated)
+    ├── di/container.ts          Wires everything together
+    └── logging/                 Structured JSON logs
+```
+
+---
+
+## Configuration Reference
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `KIROSPEC_LLM_PROVIDER` | `openai` | LLM provider: `openai` or `ollama` |
+| `OPENAI_API_KEY` | — | Required if provider = openai |
+| `OPENAI_MODEL` | `gpt-4o` | OpenAI model to use |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+| `OLLAMA_MODEL` | `llama3` | Ollama model to use |
+| `OUTPUT_DIR` | `.kiro/specs` | Where to write generated specs |
+| `PORT` | `3000` | HTTP server port |
+| `LOG_LEVEL` | `info` | Logging verbosity |
+
+---
+
+## Docker (Full Stack with Ollama)
 
 ```bash
+docker compose up -d
 docker exec kirospec-ollama ollama pull llama3
+
+# Then use the API:
+curl -X POST http://localhost:3000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Build a real-time chat app"}'
 ```
 
-### Individual Commands
+---
+
+## Run Tests (no LLM needed)
 
 ```bash
-# Build
-docker build -t kirospec-builder .
-
-# Run standalone (with Ollama running separately)
-docker run -p 3000:3000 \
-  -e KIROSPEC_LLM_PROVIDER=ollama \
-  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
-  kirospec-builder
+npm test           # 213 tests, all pass with mock LLM
+npm run typecheck  # TypeScript validation
+npm run lint       # Code style
 ```
 
 ---
 
-## Development
+## Tech Stack
 
-```bash
-# Run tests
-npm test
-
-# Type check
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Format
-npm run format
-
-# Run E2E tests
-npm test -- tests/e2e/
-```
-
-### Project Structure
-
-```
-kirospec-builder/
-├── src/
-│   ├── domain/              # Entities, Zod schemas, port interfaces
-│   │   ├── schemas/         # RawInput, Requirement, Design, Task, Error
-│   │   └── ports/           # LLMProvider, SpecExporter, InputParser, Logger
-│   ├── use-cases/           # Business logic (no framework deps)
-│   │   ├── input-parser.ts
-│   │   ├── ears-parser.use-case.ts
-│   │   ├── design-builder.use-case.ts
-│   │   ├── task-decomposer.use-case.ts
-│   │   └── spec-generator.use-case.ts
-│   ├── adapters/            # External integrations
-│   │   ├── llm/             # OpenAI, Ollama, Resilient decorator
-│   │   └── exporters/       # FileSystem Markdown exporter
-│   └── infrastructure/      # Entry points and framework code
-│       ├── cli/             # CLI with arg parsing
-│       ├── web/             # HTTP API + React UI
-│       ├── mcp/             # MCP protocol server
-│       ├── config/          # Zod-validated env config
-│       ├── di/              # Dependency injection container
-│       └── logging/         # Structured JSON logger
-├── tests/
-│   ├── unit/                # Unit tests per layer
-│   ├── integration/         # Integration tests
-│   ├── e2e/                 # End-to-end pipeline tests
-│   └── fixtures/            # Test fixture files
-├── .kiro/specs/             # KiroSpec Builder's own specifications
-├── Dockerfile               # Multi-stage production build
-├── docker-compose.yml       # App + Ollama orchestration
-└── package.json
-```
+| Layer | Technology |
+|-------|-----------|
+| Language | TypeScript (strict mode) |
+| Runtime | Node.js ≥ 20 |
+| Validation | Zod (runtime type safety on all LLM outputs) |
+| LLM | OpenAI API / Ollama (local) |
+| Architecture | Clean Architecture + DDD + SOLID |
+| Testing | Vitest (213 tests) |
+| Frontend | React + Vite |
+| Protocol | MCP (Model Context Protocol) |
+| Deployment | Docker + Docker Compose |
+| Logging | Pino-compatible structured JSON |
 
 ---
 
-## EARS Syntax Reference
+## EARS Syntax (What the Agent Generates)
 
-KiroSpec Builder generates requirements using the [EARS (Easy Approach to Requirements Syntax)](https://alistairmavin.com/ears/) methodology:
-
-| Pattern | Template | When to Use |
-|---------|----------|-------------|
-| **Ubiquitous** | `The system SHALL <action>.` | Always-active behavior |
-| **Event-Driven** | `WHEN <trigger>, the system SHALL <action>.` | Triggered by an event |
-| **State-Driven** | `WHILE <state>, the system SHALL <action>.` | Active during a condition |
-| **Optional** | `WHERE <feature>, the system SHALL <action>.` | Feature-gated behavior |
-| **Unwanted Behavior** | `IF <error>, THEN the system SHALL <action>.` | Error handling |
-
----
-
-## Resilience
-
-The system includes automatic LLM failover:
-
-1. Primary provider is called (e.g., OpenAI)
-2. On failure → immediately falls back to Ollama for that request
-3. After 3 consecutive primary failures → all requests route to Ollama
-4. On next successful primary call → counter resets
-
-This ensures the pipeline works even when cloud APIs are down, as long as Ollama is running locally.
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feat/my-feature`
-3. Write code following Clean Architecture boundaries
-4. Add unit tests for your layer
-5. Run `npm test && npm run typecheck && npm run lint`
-6. Commit with conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
-7. Push and open a Pull Request
-
-### Development Guidelines
-
-- **Domain layer**: Pure TypeScript, no imports from adapters/infrastructure
-- **Use cases**: Depend only on domain ports (interfaces), never on concrete adapters
-- **Adapters**: Implement domain ports, can import external libraries
-- **Infrastructure**: Wire everything together, framework-specific code
+| Pattern | Template | Example |
+|---------|----------|---------|
+| Ubiquitous | `The system SHALL...` | The system SHALL encrypt passwords with bcrypt. |
+| Event-Driven | `WHEN <trigger>, the system SHALL...` | WHEN payment succeeds, the system SHALL send a receipt. |
+| State-Driven | `WHILE <state>, the system SHALL...` | WHILE offline, the system SHALL queue changes locally. |
+| Optional | `WHERE <feature>, the system SHALL...` | WHERE 2FA is enabled, the system SHALL require a code. |
+| Unwanted | `IF <error>, THEN the system SHALL...` | IF the API returns 500, THEN the system SHALL retry. |
 
 ---
 
 ## License
 
 MIT
+
+---
+
+*Built by Elena Menéndez with Kiro.*
